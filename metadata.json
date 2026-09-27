@@ -1,0 +1,6 @@
+{
+  "name": "Economic Data Explorer",
+  "description": "Unified international economic intelligence platform exploring and analyzing real-time data from Eurostat, IMF, and global statistical institutions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

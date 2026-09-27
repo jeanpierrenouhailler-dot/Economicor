@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <defs>
+    <linearGradient id="logoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+    <linearGradient id="logoBarGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#93C5FD" />
+    </linearGradient>
+    <linearGradient id="logoGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FCD34D" />
+    </linearGradient>
+  </defs>
+
+  <!-- Logo Mark Icon -->
+  <g transform="translate(10, 10)">
+    <rect width="60" height="60" rx="16" fill="url(#logoBgGrad)" />
+    
+    <!-- Mini grid lines -->
+    <line x1="12" y1="46" x2="48" y2="46" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="1.5" />
+    
+    <!-- Economic Bars -->
+    <rect x="14" y="32" width="6" height="14" rx="2" fill="#FFFFFF" fill-opacity="0.6" />
+    <rect x="23" y="24" width="6" height="22" rx="2" fill="#FFFFFF" fill-opacity="0.8" />
+    <rect x="32" y="36" width="6" height="10" rx="2" fill="#FFFFFF" fill-opacity="0.5" />
+    <rect x="41" y="16" width="6" height="30" rx="2" fill="url(#logoBarGrad)" />
+    
+    <!-- Trend curve with node -->
+    <path d="M 16 30 Q 26 18 34 26 T 46 12" fill="none" stroke="url(#logoGold)" stroke-width="3" stroke-linecap="round" />
+    <circle cx="46" cy="12" r="3" fill="#FCD34D" stroke="#1E3A8A" stroke-width="1.5" />
+  </g>
+
+  <!-- Logo Wordmark Typography -->
+  <g transform="translate(82, 34)">
+    <text font-family="Plus Jakarta Sans, system-ui, -apple-system, sans-serif" font-size="19" font-weight="800" fill="#0F172A" letter-spacing="-0.5">
+      ECONOMIC<tspan fill="#2563EB"> DATA</tspan>
+    </text>
+    <text y="20" font-family="Plus Jakarta Sans, system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#64748B" letter-spacing="1.5">
+      EXPLORER · INTEL
+    </text>
+  </g>
+</svg>

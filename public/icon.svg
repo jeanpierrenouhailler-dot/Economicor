@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#38BDF8" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#FCD34D" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#334155" stroke-width="4" stroke-dasharray="8 8" />
+  
+  <!-- Subtle coordinate grid lines -->
+  <line x1="120" y1="360" x2="392" y2="360" stroke="#475569" stroke-width="2" />
+  <line x1="120" y1="280" x2="392" y2="280" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4" />
+  <line x1="120" y1="200" x2="392" y2="200" stroke="#334155" stroke-width="1.5" stroke-dasharray="4 4" />
+  
+  <!-- Stylized economic bars -->
+  <rect x="144" y="270" width="36" height="90" rx="8" fill="#3B82F6" opacity="0.8" />
+  <rect x="200" y="220" width="36" height="140" rx="8" fill="#60A5FA" opacity="0.9" />
+  <rect x="256" y="290" width="36" height="70" rx="8" fill="#2563EB" opacity="0.75" />
+  <rect x="312" y="160" width="36" height="200" rx="8" fill="url(#accentGrad)" />
+  
+  <!-- Trend line vector with nodes -->
+  <path d="M 140 260 Q 210 180 270 230 T 360 130" fill="none" stroke="url(#goldGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="140" cy="260" r="8" fill="#FCD34D" stroke="#0F172A" stroke-width="3" />
+  <circle cx="260" cy="230" r="8" fill="#FCD34D" stroke="#0F172A" stroke-width="3" />
+  <circle cx="360" cy="130" r="10" fill="#FCD34D" stroke="#0F172A" stroke-width="4" />
+  
+  <!-- Global economic node arc -->
+  <circle cx="360" cy="130" r="22" fill="none" stroke="#F59E0B" stroke-width="2" opacity="0.6" />
+</svg>
