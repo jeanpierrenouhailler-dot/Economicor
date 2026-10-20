@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import {
   Menu,
   Sun,
@@ -9,7 +9,8 @@ import {
   HelpCircle,
   Sparkles,
   RefreshCw,
-  Zap
+  Zap,
+  Bell
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useAppUpdate } from '../../hooks/useAppUpdate';
@@ -40,6 +41,9 @@ export const Header: React.FC = () => {
 
   const navLinks = [
     { to: '/', label: 'Dashboard', tooltip: 'Tableau de bord macroéconomique en direct' },
+    { to: '/anomalies', label: 'Anomalies', tooltip: 'Détection automatique d’anomalies et alertes conjoncturelles (>2.0σ)' },
+    { to: '/radar', label: 'Radar', tooltip: 'Economic Radar mondial : carte interactive des trajectoires souveraines' },
+    { to: '/scorecard', label: 'Scorecard', tooltip: 'Fiche Pays & Intelligence Macro (5 Piliers)' },
     { to: '/explorer', label: 'Explorer', tooltip: 'Moteur d’exploration, filtres et graphiques' },
     { to: '/compare', label: 'Compare', tooltip: 'Comparateur multi-pays et multi-indicateurs' },
     { to: '/datasets', label: 'Datasets', tooltip: 'Dictionnaire des structures et métadonnées SDMX' },
@@ -142,6 +146,19 @@ export const Header: React.FC = () => {
                   <Laptop className="w-4 h-4" />
                 )}
               </button>
+            </Tooltip>
+
+            {/* Live Anomalies Alert Bell */}
+            <Tooltip content="Surveillance automatique des anomalies (4 alertes actives)" position="bottom">
+              <Link
+                to="/anomalies"
+                className="relative p-2 text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center justify-center"
+                aria-label="Alertes et anomalies"
+              >
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
+              </Link>
             </Tooltip>
 
             {/* PWA Install Button */}

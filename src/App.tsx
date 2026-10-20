@@ -4,6 +4,9 @@ import { Header } from './components/layout/Header';
 import { MobileNav } from './components/layout/MobileNav';
 import { UpdateNotificationToast } from './components/layout/UpdateNotificationToast';
 import { OnboardingModal } from './components/common/OnboardingModal';
+import { ScorecardPage } from './pages/Scorecard/ScorecardPage';
+import { RadarPage } from './pages/Radar/RadarPage';
+import { AnomaliesPage } from './pages/Anomalies/AnomaliesPage';
 import { DashboardPage } from './pages/Dashboard/DashboardPage';
 import { ExplorerPage } from './pages/Explorer/ExplorerPage';
 import { ComparePage } from './pages/Compare/ComparePage';
@@ -34,6 +37,9 @@ export default function App() {
         <main className="flex-1 pb-16 lg:pb-8">
           <Routes>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/anomalies" element={<AnomaliesPage />} />
+            <Route path="/radar" element={<RadarPage />} />
+            <Route path="/scorecard" element={<ScorecardPage />} />
             <Route path="/explorer" element={<ExplorerPage />} />
             <Route path="/compare" element={<ComparePage />} />
             <Route path="/datasets" element={<DatasetExplorerPage />} />

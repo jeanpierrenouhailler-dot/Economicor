@@ -1,5 +1,15 @@
 import { EurostatProvider } from '../api/eurostat/EurostatProvider';
 import { IMFProvider } from '../api/imf/IMFProvider';
+import { WorldBankProvider } from '../api/worldbank/WorldBankProvider';
+import { FREDProvider } from '../api/fred/FREDProvider';
+import { INSEEProvider } from '../api/insee/INSEEProvider';
+import { ECBProvider } from '../api/ecb/ECBProvider';
+import { BLSProvider } from '../api/bls/BLSProvider';
+import { OECDProvider } from '../api/oecd/OECDProvider';
+import { UNDataProvider } from '../api/undata/UNDataProvider';
+import { BISProvider } from '../api/bis/BISProvider';
+import { EIAProvider } from '../api/eia/EIAProvider';
+import { FAOProvider } from '../api/fao/FAOProvider';
 import { Country, COUNTRIES } from '../models/Country';
 import { Dataset, DatasetMetadata, CATALOG_DATASETS } from '../models/Dataset';
 import { Indicator, UNIFIED_INDICATORS } from '../models/Indicator';
@@ -9,14 +19,26 @@ import { DataQuery, QueryResult } from '../models/Query';
 import { CacheService } from './CacheService';
 import { HistoryService } from './HistoryService';
 import { NormalizationService } from './NormalizationService';
+import { SourceRouter, SOURCE_METADATA } from './SourceRouter';
 
 export class QueryService {
   private static instance: QueryService;
   private providers: Map<string, DataProvider> = new Map();
 
   private constructor() {
+    // Register all 12 structural economic data providers
     this.registerProvider(new EurostatProvider());
     this.registerProvider(new IMFProvider());
+    this.registerProvider(new WorldBankProvider());
+    this.registerProvider(new FREDProvider());
+    this.registerProvider(new INSEEProvider());
+    this.registerProvider(new ECBProvider());
+    this.registerProvider(new BLSProvider());
+    this.registerProvider(new OECDProvider());
+    this.registerProvider(new UNDataProvider());
+    this.registerProvider(new BISProvider());
+    this.registerProvider(new EIAProvider());
+    this.registerProvider(new FAOProvider());
   }
 
   public static getInstance(): QueryService {
@@ -39,7 +61,7 @@ export class QueryService {
   }
 
   public async getDatasets(source?: string): Promise<Dataset[]> {
-    if (source && source !== 'all') {
+    if (source && source !== 'all' && source !== 'auto') {
       const p = this.getProvider(source);
       return p ? p.getDatasets() : [];
     }
@@ -48,7 +70,7 @@ export class QueryService {
 
   public async getIndicators(source?: string, dataset?: string): Promise<Indicator[]> {
     let list = UNIFIED_INDICATORS;
-    if (source && source !== 'all') {
+    if (source && source !== 'all' && source !== 'auto') {
       list = list.filter(i => i.source === source);
     }
     if (dataset) {
@@ -69,20 +91,33 @@ export class QueryService {
 
   /**
    * Main query execution method with caching, provenance, and history logging.
+   * Features automatic source routing when source is 'auto' or omitted.
    */
   public async executeQuery(query: DataQuery, forceRefresh: boolean = false): Promise<QueryResult> {
-    // Determine provider
     let sourceId = query.source;
-    if (!sourceId || sourceId === 'all') {
-      // Find indicator source
+    let routingReason: string | undefined = undefined;
+
+    // Intelligent source resolution if 'auto' or unspecified
+    if (!sourceId || sourceId === 'all' || sourceId === 'auto') {
+      const primaryCountry = (query.countries && query.countries.length > 0) ? query.countries[0] : 'FR';
+      
+      // If indicator is mapped, check its default source
       const ind = UNIFIED_INDICATORS.find(i => i.id === query.indicator);
-      sourceId = ind ? ind.source : 'eurostat';
+      if (ind) {
+        sourceId = ind.source;
+        const meta = SOURCE_METADATA[sourceId];
+        routingReason = `Source officielle sélectionnée : ${meta?.name || sourceId.toUpperCase()} (${meta?.specialty || ''})`;
+      } else {
+        sourceId = 'eurostat';
+      }
     }
 
     const provider = this.getProvider(sourceId);
     if (!provider) {
       throw new Error(`Data provider '${sourceId}' is not registered`);
     }
+
+    const meta = SOURCE_METADATA[sourceId];
 
     // Generate unique deterministic cache key
     const sortedCountries = (query.countries || []).slice().sort().join(',');
@@ -99,6 +134,8 @@ export class QueryService {
           observations: cached.data,
           provenance: {
             source: provider.name,
+            sourceBadge: meta?.badge || provider.name,
+            routingReason,
             dataset: query.dataset || 'standard',
             indicator: query.indicator || '',
             retrievedAt: new Date(cached.timestamp).toISOString(),
@@ -126,15 +163,15 @@ export class QueryService {
 
       // Format query title for history
       const indicatorObj = UNIFIED_INDICATORS.find(i => i.id === query.indicator);
-      const indLabel = indicatorObj ? indicatorObj.label : query.indicator || 'Economic Data';
+      const indLabel = indicatorObj?.labelFr || indicatorObj?.label || query.indicator || 'Données Économiques';
       const cLabels = (query.countries && query.countries.length > 0)
-        ? query.countries.map(c => NormalizationService.normalizeCountry(c).name).join(', ')
-        : 'All regions';
+        ? query.countries.map(c => NormalizationService.normalizeCountry(c).nameFr || NormalizationService.normalizeCountry(c).name).join(', ')
+        : 'Toutes régions';
 
       HistoryService.addEntry(
         query,
         `${indLabel} (${cLabels})`,
-        `${provider.name} · ${observations.length} observations`,
+        `${meta?.badge || provider.name} · ${observations.length} observations`,
         observations.length
       );
 
@@ -143,6 +180,8 @@ export class QueryService {
         observations,
         provenance: {
           source: provider.name,
+          sourceBadge: meta?.badge || provider.name,
+          routingReason,
           dataset: query.dataset || indicatorObj?.dataset || 'default',
           indicator: query.indicator || '',
           retrievedAt: new Date().toISOString(),
@@ -160,6 +199,8 @@ export class QueryService {
           observations: expiredCached.data,
           provenance: {
             source: provider.name,
+            sourceBadge: meta?.badge || provider.name,
+            routingReason,
             dataset: query.dataset || 'cached',
             indicator: query.indicator || '',
             retrievedAt: new Date(expiredCached.timestamp).toISOString(),
@@ -168,7 +209,7 @@ export class QueryService {
           },
           fromCache: true,
           cachedAt: new Date(expiredCached.timestamp).toISOString(),
-          error: `Live fetch failed (${err instanceof Error ? err.message : String(err)}). Displaying cached offline observations.`
+          error: `Live fetch failed (${err instanceof Error ? err.message : String(err)}). Affichage des données en cache local.`
         };
       }
 

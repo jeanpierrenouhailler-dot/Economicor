@@ -33,10 +33,11 @@ export const ContextualHelpModal: React.FC<ContextualHelpModalProps> = ({ isOpen
           title: 'Aide du Tableau de Bord (Dashboard)',
           icon: LayoutDashboard,
           summary:
-            'Le tableau de bord présente les indicateurs économiques clés en temps réel pour les grandes économies mondiales et européennes.',
+            'Le tableau de bord présente le Cockpit des 6 Piliers macroéconomiques (PIB, Inflation, Chômage, Dette, Taux directeur, Immobilier) avec résolution automatique de la meilleure source officielle.',
           tips: [
-            'Cliquez sur les drapeaux de pays pour basculer instantanément les statistiques de la France, Allemagne, Italie, etc.',
-            'Chaque carte d’indicateur (PIB, Inflation, Dette, Chômage, Immobilier) est cliquable et ouvre directement l’Explorateur avec les paramètres pré-remplis.',
+            'Cliquez sur les drapeaux de pays pour basculer instantanément les 6 piliers pour la France, l’Allemagne, les États-Unis, etc.',
+            'Economicor sélectionne automatiquement la source la plus pertinente : INSEE pour la France, BCE pour les taux européens, BLS/FRED pour les États-Unis, Eurostat pour l’UE, et FMI/Banque Mondiale pour le monde.',
+            'Chaque carte d’indicateur est cliquable et ouvre directement l’Explorateur avec les paramètres pré-remplis.',
             'L’icône de rafraîchissement permet de réinterroger les serveurs officiels et de mettre à jour le cache local.'
           ]
         };
@@ -45,12 +46,13 @@ export const ContextualHelpModal: React.FC<ContextualHelpModalProps> = ({ isOpen
           title: 'Aide de l’Explorateur (Data Explorer)',
           icon: Compass,
           summary:
-            'L’Explorateur est le moteur central permettant d’interroger avec précision les bases de données d’Eurostat et du FMI.',
+            'L’Explorateur est le moteur central permettant d’interroger avec précision les 12 institutions statistiques intégrées à Economicor.',
           tips: [
-            'Sélectionnez la Source (Eurostat ou FMI), puis le Dataset et enfin l’Indicateur désiré.',
-            'Utilisez les préréglages « Big 4 », « Eurozone » ou « G7 » pour sélectionner rapidement un groupe d’économies pertinentes.',
-            'Basculez entre les 4 vues disponibles : Séries temporelles (courbe), Comparaison par barres, Carte géographique choroplèthe, ou Tableau haute densité.',
-            'Exportez vos résultats nettoyés et normalisés au format CSV ou JSON en un clic via la barre d’outils du tableau.'
+            'Utilisez la barre du Cockpit Macro en haut pour sélectionner en un clic : PIB, Inflation, Chômage, Dette, Taux directeur ou Immobilier.',
+            'En mode « Auto », Economicor détecte automatiquement la source officielle souveraine la plus qualifiée selon le pays sélectionné.',
+            'Vous pouvez aussi choisir manuellement l’une des 12 sources dans le sélecteur (Eurostat, FMI, Banque Mondiale, FRED, INSEE, BCE, BLS, OCDE, ONU, BRI, EIA, FAO).',
+            'Basculez entre les 4 vues disponibles : Séries temporelles (courbe), Comparaison par barres, Carte choroplèthe, ou Tableau haute densité.',
+            'Exportez vos résultats nettoyés et normalisés au format CSV ou JSON via la barre d’outils du tableau.'
           ]
         };
       case '/compare':

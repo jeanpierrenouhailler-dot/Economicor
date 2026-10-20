@@ -57,14 +57,54 @@ export const AboutPage: React.FC = () => {
             <span>(EconomicObservation[], DataProvenance)</span>
           </div>
           <div className="pl-4 text-slate-400">↓ DataProvider Interface (polymorphic providers)</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 pl-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1 pl-4">
             <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-              <span className="text-blue-500 font-bold block">EurostatProvider</span>
-              <span className="text-[10px] text-slate-400">SDMX 3.0 / Statistics 1.0 JSON-stat</span>
+              <span className="text-blue-500 font-bold block text-xs">🇪🇺 Eurostat</span>
+              <span className="text-[10px] text-slate-400">Europe (HICP, HPI, Chômage)</span>
             </div>
             <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
-              <span className="text-amber-500 font-bold block">IMFProvider</span>
-              <span className="text-[10px] text-slate-400">DataMapper API v2 / SDMX CompactData</span>
+              <span className="text-amber-500 font-bold block text-xs">🌍 FMI / IMF</span>
+              <span className="text-[10px] text-slate-400">Macro mondiale (WEO, PIB, Dette)</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-emerald-500 font-bold block text-xs">🏦 Banque Mondiale</span>
+              <span className="text-[10px] text-slate-400">Développement, PIB USD, Pauvreté</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-rose-500 font-bold block text-xs">🇺🇸 FRED Fed</span>
+              <span className="text-[10px] text-slate-400">Fed Funds, T-Note 10Y, Case-Shiller</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-indigo-500 font-bold block text-xs">🇫🇷 INSEE</span>
+              <span className="text-[10px] text-slate-400">IPC France, Chômage BIT, Notaires</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-cyan-500 font-bold block text-xs">🏦 BCE / ECB</span>
+              <span className="text-[10px] text-slate-400">Taux directeurs MRO/DFR, M3</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-sky-500 font-bold block text-xs">🇺🇸 BLS</span>
+              <span className="text-[10px] text-slate-400">Emploi US, Payrolls, CPI-U</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-orange-500 font-bold block text-xs">🏛️ OCDE / OECD</span>
+              <span className="text-[10px] text-slate-400">Indicateur Avancé CLI, HUR</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-teal-500 font-bold block text-xs">🌐 ONU / UN Data</span>
+              <span className="text-[10px] text-slate-400">Démographie mondiale, IDH</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-purple-500 font-bold block text-xs">🏦 BRI / BIS</span>
+              <span className="text-[10px] text-slate-400">Banque centrale, Taux mondiaux, Crédit</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-red-500 font-bold block text-xs">🛢️ EIA</span>
+              <span className="text-[10px] text-slate-400">Pétrole Brent, WTI, Gaz Henry Hub</span>
+            </div>
+            <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+              <span className="text-lime-500 font-bold block text-xs">🌾 FAO</span>
+              <span className="text-[10px] text-slate-400">Indice mondial des prix alimentaires</span>
             </div>
           </div>
         </div>

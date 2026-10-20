@@ -19,6 +19,8 @@ export interface EconomicObservation {
 
 export interface DataProvenance {
   source: string;
+  sourceBadge?: string;
+  routingReason?: string;
   dataset: string;
   indicator: string;
   endpoint?: string;

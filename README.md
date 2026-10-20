@@ -9,12 +9,63 @@
 </p>
 
 [![PWA Ready](https://img.shields.io/badge/PWA-Installable-blue.svg)](https://developer.mozilla.org/fr/docs/Web/Progressive_web_apps)
-[![Eurostat API](https://img.shields.io/badge/Data-Eurostat_Official-blue.svg)](https://ec.europa.eu/eurostat)
-[![IMF WEO](https://img.shields.io/badge/Data-IMF_DataMapper-gold.svg)](https://www.imf.org/external/datamapper/)
-[![Service Worker](https://img.shields.io/badge/Offline-IndexedDB_Tiered-success.svg)](#)
+[![12 Data Providers](https://img.shields.io/badge/Sources-12_Officielles-emerald.svg)](#)
+[![Smart Source Router](https://img.shields.io/badge/Engine-Economicor_Router-purple.svg)](#)
 [![Theme Support](https://img.shields.io/badge/Theme-Light_%26_Dark-orange.svg)](#)
 
 </div>
+
+---
+
+## 🏛️ Les 12 Sources Officielles Intégrées
+
+Economicor intègre **12 institutions statistiques souveraines et multilatérales** dans une abstraction commune `DataProvider` :
+
+| Source | Drapeau / Badge | Apport Stratégique | Séries Principales |
+| :--- | :--- | :--- | :--- |
+| **Eurostat** | 🇪🇺 Eurostat | Europe & Zone Euro | HICP (Inflation harmonisée), HPI (Prix logements), Chômage harmonisé, PIB UE |
+| **IMF (FMI)** | 🌍 FMI | Macroéconomie mondiale | Perspectives WEO, Croissance du PIB réel, Inflation WEO, Dette publique brute |
+| **World Bank** | 🏦 Banque Mondiale | Développement mondial, PIB, pauvreté | PIB mondial en USD courant, PIB par habitant PPA, Dette centrale, Émissions |
+| **FRED** | 🇺🇸 FRED Fed | États-Unis + séries financières | Fed Funds Rate (EFFR), T-Note 10Y, Case-Shiller Home Price Index, Dette US |
+| **INSEE** | 🇫🇷 INSEE | France extrêmement détaillée | IPC France, Taux de chômage BIT, PIB volume CVS-CJO, Logements anciens Notaires-Insee |
+| **ECB (BCE)** | 🏦 BCE | Taux directeurs, crédit, monnaie | Taux MRO (Refinancement), DFR (Facilité de dépôt), Euribor 3M, Masse monétaire M3 |
+| **BLS** | 🇺🇸 BLS | Emploi & inflation US | Taux de chômage U-3, Nonfarm Payrolls (créations nettes d'emplois), CPI-U |
+| **OECD (OCDE)** | 🏛️ OCDE | Comparaisons internationales | Indicateur Avancé Composite (CLI), Chômage harmonisé HUR, Inflation standardisée |
+| **UN Data** | 🌐 ONU | Démographie & développement humain | Population mondiale totale, Indice de Développement Humain (IDH / HDI) |
+| **BIS (BRI)** | 🏦 BRI / BIS | Banque, crédit, dette | Matrice comparée des taux directeurs, Crédit au secteur non-financier, REER |
+| **EIA** | 🛢️ EIA | Énergie mondiale | Pétrole Brut Brent spot, Pétrole Brut WTI, Gaz Naturel Henry Hub |
+| **FAO** | 🌾 FAO | Agriculture & alimentation | FAO Global Food Price Index, Indice Céréales, Huiles végétales, Produits laitiers |
+
+---
+
+## 🎯 Moteur de Routage Intelligent Economicor
+
+L'application ne se contente pas d'ajouter des APIs isolées : elle intègre un **moteur de routage sémantique macroéconomique**. L'utilisateur peut demander :
+
+> **`PIB + inflation + chômage + dette + taux directeur + immobilier`**
+
+et Economicor résout instantanément la **meilleure source officielle disponible** selon l'autorité compétente et la granularité territoriale :
+
+* **Pour la France (`FR`)** :
+  * **PIB** ➔ 🇫🇷 **INSEE** (Comptabilité nationale trimestrielle en volume CVS-CJO)
+  * **Inflation** ➔ 🇫🇷 **INSEE** (IPC officiel souverain de l'ensemble des ménages)
+  * **Chômage** ➔ 🇫🇷 **INSEE** (Taux au sens du BIT de l'enquête Emploi)
+  * **Dette** ➔ 🇫🇷 **INSEE** (Dette brute au sens du traité de Maastricht)
+  * **Taux directeur** ➔ 🏦 **BCE** (Taux des opérations principales de refinancement MRO de l'Eurosystème)
+  * **Immobilier** ➔ 🇫🇷 **INSEE** (Indice Notaires-Insee des prix des logements anciens)
+* **Pour la Zone Euro (`DE`, `IT`, `ES`, etc.)** :
+  * **Taux directeur** ➔ 🏦 **BCE**
+  * **Inflation** ➔ 🇪🇺 **Eurostat** (IPCH Harmonisé)
+  * **Immobilier** ➔ 🇪🇺 **Eurostat** (HPI House Price Index)
+* **Pour les États-Unis (`US`)** :
+  * **Taux directeur** ➔ 🇺🇸 **FRED** (Federal Funds Effective Rate)
+  * **Emploi & Inflation** ➔ 🇺🇸 **BLS** (U-3 Unemployment & CPI-U)
+  * **Immobilier** ➔ 🇺🇸 **FRED** (S&P/Case-Shiller Home Price Index)
+* **Pour les comparaisons globales** :
+  * **Taux directeurs mondiaux** ➔ 🏦 **BRI / BIS**
+  * **PIB & Développement** ➔ 🏦 **Banque Mondiale** / 🌍 **FMI**
+  * **Énergie** ➔ 🛢️ **EIA**
+  * **Alimentation** ➔ 🌾 **FAO**
 
 ---
 

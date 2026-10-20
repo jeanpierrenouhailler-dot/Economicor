@@ -3,6 +3,9 @@ import { NavLink } from 'react-router-dom';
 import {
   X,
   LayoutDashboard,
+  Radio,
+  Bell,
+  FileText,
   Compass,
   GitCompare,
   Database,
@@ -59,6 +62,27 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({
           badge: 'Live',
           description: 'PIB, Inflation, Dette, Chômage et Immobilier en temps réel',
           icon: LayoutDashboard
+        },
+        {
+          to: '/radar',
+          label: 'Economic Radar',
+          badge: 'Signature',
+          description: 'Carte mondiale interactive des trajectoires souveraines ↗ ↘ →',
+          icon: Radio
+        },
+        {
+          to: '/anomalies',
+          label: 'Détection d\'Anomalies',
+          badge: 'Surveillance',
+          description: 'Alerte automatique sur les ruptures de tendance (>2,0σ) et variations historiques',
+          icon: Bell
+        },
+        {
+          to: '/scorecard',
+          label: 'Fiche Pays & Scorecard',
+          badge: 'Synthèse',
+          description: 'Diagnostic macroéconomique complet à travers les 5 piliers sans bâtir 15 graphiques',
+          icon: FileText
         },
         {
           to: '/explorer',

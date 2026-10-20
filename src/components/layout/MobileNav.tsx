@@ -1,15 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Compass, GitCompare, Database, Bookmark, History } from 'lucide-react';
+import { LayoutDashboard, Radio, Bell, FileText, Compass, GitCompare } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
   const items = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/anomalies', label: 'Anomalies', icon: Bell },
+    { to: '/radar', label: 'Radar', icon: Radio },
+    { to: '/scorecard', label: 'Scorecard', icon: FileText },
     { to: '/explorer', label: 'Explorer', icon: Compass },
-    { to: '/compare', label: 'Compare', icon: GitCompare },
-    { to: '/datasets', label: 'Datasets', icon: Database },
-    { to: '/favorites', label: 'Favorites', icon: Bookmark },
-    { to: '/history', label: 'History', icon: History }
+    { to: '/compare', label: 'Compare', icon: GitCompare }
   ];
 
   return (

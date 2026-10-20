@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   Search,
   Bookmark,
@@ -8,7 +8,11 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  Layers,
+  ArrowRight,
+  Bell
 } from 'lucide-react';
 import { queryService } from '../../services/QueryService';
 import { UNIFIED_INDICATORS, Indicator } from '../../models/Indicator';
@@ -24,18 +28,25 @@ import { ErrorAlert } from '../../components/common/ErrorAlert';
 import { FavoritesService } from '../../services/FavoritesService';
 import { OfflineBanner } from '../../components/layout/OfflineIndicator';
 import { Tooltip } from '../../components/common/Tooltip';
+import { MacroCockpitBar } from '../../components/common/MacroCockpitBar';
+import {
+  EconomicConceptId,
+  SourceRouter,
+  SOURCE_METADATA,
+  MACRO_HEXAGON_CONCEPTS
+} from '../../services/SourceRouter';
 
 export const ExplorerPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Query state initialized from URL search params or defaults
-  const [source, setSource] = useState<string>(() => searchParams.get('source') || 'all');
+  const [source, setSource] = useState<string>(() => searchParams.get('source') || 'auto');
   const [dataset, setDataset] = useState<string>(() => searchParams.get('dataset') || 'prc_hpi_q');
   const [indicator, setIndicator] = useState<string>(() => searchParams.get('indicator') || 'house_price_index');
   const [countries, setCountries] = useState<string[]>(() => {
     const fromParam = searchParams.get('countries');
     if (fromParam) return fromParam.split(',').filter(Boolean);
-    return ['FR', 'DE', 'IT'];
+    return ['FR'];
   });
   const [startYear, setStartYear] = useState<number>(() => {
     const fromParam = searchParams.get('from');
@@ -47,6 +58,7 @@ export const ExplorerPage: React.FC = () => {
   });
 
   // UI state
+  const [activeConcept, setActiveConcept] = useState<EconomicConceptId | null>(null);
   const [observations, setObservations] = useState<EconomicObservation[]>([]);
   const [provenance, setProvenance] = useState<DataProvenance | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -77,15 +89,18 @@ export const ExplorerPage: React.FC = () => {
       const activeIndicator = UNIFIED_INDICATORS.find(i => i.id === indicator);
       const isQuarterly = activeIndicator?.defaultFrequency === 'Q';
 
-      const res = await queryService.executeQuery({
-        source,
-        dataset,
-        indicator,
-        countries,
-        startPeriod: isQuarterly ? `${startYear}-Q1` : `${startYear}`,
-        endPeriod: isQuarterly ? `${endYear}-Q4` : `${endYear}`,
-        frequency: activeIndicator?.defaultFrequency || 'A'
-      }, force);
+      const res = await queryService.executeQuery(
+        {
+          source,
+          dataset,
+          indicator,
+          countries,
+          startPeriod: isQuarterly ? `${startYear}-Q1` : `${startYear}`,
+          endPeriod: isQuarterly ? `${endYear}-Q4` : `${endYear}`,
+          frequency: activeIndicator?.defaultFrequency || 'A'
+        },
+        force
+      );
 
       setObservations(res.observations);
       setProvenance(res.provenance);
@@ -100,15 +115,14 @@ export const ExplorerPage: React.FC = () => {
 
   useEffect(() => {
     executeQuery();
-  }, []);
+  }, [source, dataset, indicator, countries]);
 
   const handleToggleFavorite = () => {
     const indObj = UNIFIED_INDICATORS.find(i => i.id === indicator);
-    const countryLabels = countries.map(c => COUNTRIES.find(x => x.code === c)?.name || c).join(', ');
-    const title = `${countryLabels} — ${indObj?.label || indicator}`;
+    const countryLabels = countries.map(c => COUNTRIES.find(x => x.code === c)?.nameFr || COUNTRIES.find(x => x.code === c)?.name || c).join(', ');
+    const title = `${countryLabels} — ${indObj?.labelFr || indObj?.label || indicator}`;
 
     if (isFavorite) {
-      // Find and remove
       const favs = FavoritesService.getFavorites();
       const existing = favs.find(f => f.indicatorId === indicator && (f.query.countries || []).join(',') === countries.join(','));
       if (existing) {
@@ -135,8 +149,30 @@ export const ExplorerPage: React.FC = () => {
     }
   };
 
+  const handleSelectConcept = (
+    conceptId: EconomicConceptId,
+    resolved: ReturnType<typeof SourceRouter.resolveBestSource>
+  ) => {
+    setActiveConcept(conceptId);
+    setSource(resolved.source);
+    setDataset(resolved.dataset);
+    setIndicator(resolved.indicatorId);
+  };
+
+  const handleSelectCockpitHexagon = () => {
+    // When activating hexagon, pick the first pillar (GDP) with auto-routing
+    const primaryCountry = countries[0] || 'FR';
+    const resolved = SourceRouter.resolveBestSource('gdp', primaryCountry);
+    setActiveConcept('gdp');
+    setSource(resolved.source);
+    setDataset(resolved.dataset);
+    setIndicator(resolved.indicatorId);
+  };
+
   const activeInd = UNIFIED_INDICATORS.find(i => i.id === indicator);
   const activeDs = CATALOG_DATASETS.find(d => d.code === dataset);
+  const primaryCountry = countries[0] || 'FR';
+  const resolvedForCurrent = activeConcept ? SourceRouter.resolveBestSource(activeConcept, primaryCountry) : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
@@ -148,10 +184,10 @@ export const ExplorerPage: React.FC = () => {
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span>Query Engine</span>
             <span aria-hidden="true">·</span>
-            <span className="font-mono text-slate-400">REST & SDMX 3.0</span>
+            <span className="font-mono text-slate-400">12 Sources Connectées · SDMX 3.0 & REST</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
-            Data Explorer
+            Explorateur de Données Économiques
           </h1>
         </div>
 
@@ -160,39 +196,95 @@ export const ExplorerPage: React.FC = () => {
           <Tooltip content={isFavorite ? 'Retirer cette analyse des favoris' : 'Enregistrer cette requête dans vos favoris hors ligne'} position="bottom">
             <button
               onClick={handleToggleFavorite}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
                 isFavorite
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
                   : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
               {isFavorite ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
-              <span>{isFavorite ? 'Saved to Favorites' : 'Add to Favorites'}</span>
+              <span>{isFavorite ? 'Enregistré aux favoris' : 'Ajouter aux favoris'}</span>
             </button>
           </Tooltip>
 
-          <Tooltip content="Réexécuter la requête auprès des serveurs Eurostat et FMI" position="bottom">
+          <Tooltip content="Réexécuter la requête auprès de la source officielle" position="bottom">
             <button
               onClick={() => executeQuery(true)}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition disabled:opacity-50 shadow-sm"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition disabled:opacity-50 shadow-sm cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">Refresh Query</span>
+              <span className="hidden sm:inline">Rafraîchir</span>
             </button>
           </Tooltip>
 
           {/* Mobile Filter Toggle */}
           <button
             onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Filters</span>
+            <span>Filtres</span>
             {mobileFiltersOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
+
+      {/* Anomalies Détectées Quick Access Strip */}
+      <div className="flex items-center gap-2 overflow-x-auto py-2 px-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs">
+        <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-bold shrink-0">
+          <Bell className="w-3.5 h-3.5 animate-bounce" />
+          <span>Surveillance Anomalies :</span>
+        </div>
+        <button
+          onClick={() => {
+            setCountries(['FR']);
+            setSource('insee');
+            setDataset('insee_cpi');
+            setIndicator('insee_cpi');
+          }}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-slate-800 dark:text-slate-200 font-medium hover:border-blue-500 whitespace-nowrap cursor-pointer transition shadow-2xs"
+        >
+          <span>🇫🇷 Inflation (+2,1σ)</span>
+        </button>
+        <button
+          onClick={() => {
+            setCountries(['DE']);
+            setSource('destatis');
+            setDataset('prc_hpi_q');
+            setIndicator('house_price_index');
+          }}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-slate-800 dark:text-slate-200 font-medium hover:border-blue-500 whitespace-nowrap cursor-pointer transition shadow-2xs"
+        >
+          <span>🇩🇪 Immobilier (Record 2010)</span>
+        </button>
+        <button
+          onClick={() => {
+            setCountries(['US']);
+            setSource('fred');
+            setDataset('fred_macro');
+            setIndicator('fred_debt_gdp');
+          }}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-slate-800 dark:text-slate-200 font-medium hover:border-blue-500 whitespace-nowrap cursor-pointer transition shadow-2xs"
+        >
+          <span>🇺🇸 Dette PIB (+2,3σ)</span>
+        </button>
+        <Link
+          to="/anomalies"
+          className="text-blue-600 dark:text-blue-400 font-semibold hover:underline ml-auto pr-1 shrink-0 flex items-center gap-1 whitespace-nowrap"
+        >
+          <span>Toutes les alertes (4)</span>
+          <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+
+      {/* Intelligent Concept Router Quick Bar */}
+      <MacroCockpitBar
+        currentCountry={primaryCountry}
+        activeConcept={activeConcept}
+        onSelectConcept={handleSelectConcept}
+        onSelectCockpitHexagon={handleSelectCockpitHexagon}
+      />
 
       {/* Main Parameters Filter Card */}
       <div className={`p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 ${
@@ -208,6 +300,17 @@ export const ExplorerPage: React.FC = () => {
           onIndicatorChange={setIndicator}
         />
 
+        {/* Source Router Recommendation Callout if resolved */}
+        {provenance?.routingReason && (
+          <div className="flex items-start gap-2.5 p-3 rounded-lg bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 text-xs text-blue-900 dark:text-blue-200">
+            <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Optimisation automatique des sources : </span>
+              <span>{provenance.routingReason}</span>
+            </div>
+          </div>
+        )}
+
         {/* Countries Selector */}
         <CountrySelector
           selectedCountries={countries}
@@ -218,7 +321,7 @@ export const ExplorerPage: React.FC = () => {
         <PeriodRangeSlider
           startYear={startYear}
           endYear={endYear}
-          minYear={2010}
+          minYear={2015}
           maxYear={2026}
           onChange={(start, end) => {
             setStartYear(start);
@@ -227,15 +330,18 @@ export const ExplorerPage: React.FC = () => {
         />
 
         {/* Analyze CTA */}
-        <div className="pt-2 flex justify-end">
+        <div className="pt-2 flex items-center justify-between">
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            Source active : <span className="font-semibold text-slate-800 dark:text-slate-200">{provenance?.sourceBadge || source.toUpperCase()}</span>
+          </div>
           <button
             type="button"
             onClick={() => executeQuery(false)}
             disabled={loading}
-            className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg shadow-md transition disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-lg shadow-md transition disabled:opacity-50 cursor-pointer"
           >
             <Sparkles className="w-4 h-4" />
-            <span>ANALYZE DATA</span>
+            <span>EXÉCUTER L'ANALYSE</span>
           </button>
         </div>
       </div>
@@ -259,8 +365,8 @@ export const ExplorerPage: React.FC = () => {
           provenance={provenance}
           unit={activeInd?.unit}
           frequency={activeInd?.defaultFrequency}
-          indicatorTitle={activeInd?.label || indicator}
-          indicatorSubtitle={`${provenance.source} · Dataset: ${activeDs?.name || dataset}`}
+          indicatorTitle={activeInd?.labelFr || activeInd?.label || indicator}
+          indicatorSubtitle={`${provenance.sourceBadge || provenance.source} · Dataset: ${activeDs?.name || dataset}`}
           onSelectCountry={(c) => {
             if (!countries.includes(c)) {
               setCountries([...countries, c]);

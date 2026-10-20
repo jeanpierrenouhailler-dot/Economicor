@@ -44,7 +44,7 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({
             const newSource = e.target.value;
             onSourceChange(newSource);
             // Auto pick matching dataset & indicator
-            const firstDs = CATALOG_DATASETS.find(d => newSource === 'all' || d.source === newSource);
+            const firstDs = CATALOG_DATASETS.find(d => newSource === 'all' || newSource === 'auto' || d.source === newSource);
             if (firstDs) {
               onDatasetChange(firstDs.code);
               const firstInd = UNIFIED_INDICATORS.find(i => i.dataset === firstDs.code);
@@ -53,9 +53,20 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({
           }}
           className="w-full text-xs py-2 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium focus:ring-1 focus:ring-blue-500"
         >
-          <option value="all">All Sources (Unified)</option>
-          <option value="eurostat">Eurostat (EU)</option>
-          <option value="imf">IMF (International Monetary Fund)</option>
+          <option value="auto">🤖 Auto (Meilleure source recommandée)</option>
+          <option value="all">🌐 Toutes les sources (Catalogue complet)</option>
+          <option value="eurostat">🇪🇺 Eurostat (Europe)</option>
+          <option value="imf">🌍 IMF / FMI (Macro mondiale)</option>
+          <option value="worldbank">🏦 Banque Mondiale (Développement & PIB)</option>
+          <option value="fred">🇺🇸 FRED (Fed St. Louis, séries financières)</option>
+          <option value="insee">🇫🇷 INSEE (France haute précision)</option>
+          <option value="ecb">🏦 ECB / BCE (Taux, crédit, monnaie)</option>
+          <option value="bls">🇺🇸 BLS (Emploi & inflation US)</option>
+          <option value="oecd">🏛️ OECD / OCDE (Comparaisons internationales)</option>
+          <option value="undata">🌐 UN Data (Démographie & IDH)</option>
+          <option value="bis">🏦 BIS / BRI (Banque, crédit, dette)</option>
+          <option value="eia">🛢️ EIA (Énergie, pétrole, gaz)</option>
+          <option value="fao">🌾 FAO (Agriculture & alimentation)</option>
         </select>
       </div>
 
@@ -94,7 +105,7 @@ export const IndicatorSelector: React.FC<IndicatorSelectorProps> = ({
         >
           {availableIndicators.map(ind => (
             <option key={ind.id} value={ind.id}>
-              {ind.label} [{ind.unit}]
+              {ind.labelFr || ind.label} [{ind.unit}] ({ind.source.toUpperCase()})
             </option>
           ))}
         </select>

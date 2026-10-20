@@ -3,13 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   Activity,
-  Building,
-  DollarSign,
   Users,
+  Landmark,
+  Percent,
+  Building2,
+  Flame,
+  Wheat,
+  CircleDollarSign,
   ArrowRight,
   ShieldCheck,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Layers,
+  ChevronRight,
+  FileText,
+  Radio,
+  Bell
 } from 'lucide-react';
 import { queryService } from '../../services/QueryService';
 import { COUNTRIES, Country } from '../../models/Country';
@@ -17,24 +26,53 @@ import { EconomicObservation } from '../../models/Observation';
 import { StatCardSkeleton } from '../../components/common/SkeletonLoader';
 import { ErrorAlert } from '../../components/common/ErrorAlert';
 import { Tooltip } from '../../components/common/Tooltip';
+import {
+  EconomicConceptId,
+  MACRO_HEXAGON_CONCEPTS,
+  SourceRouter,
+  SOURCE_METADATA,
+  ECONOMIC_CONCEPTS
+} from '../../services/SourceRouter';
+import { MacroCockpitBar } from '../../components/common/MacroCockpitBar';
 
-interface MetricCardData {
-  id: string;
+interface PillarMetric {
+  conceptId: EconomicConceptId;
   title: string;
   source: string;
+  sourceBadge: string;
+  routingReason: string;
   value: number | null;
   unit: string;
   period: string;
-  change?: number;
   indicatorId: string;
   dataset: string;
   icon: React.ElementType;
+  alternatives: Array<{
+    source: string;
+    sourceName: string;
+    indicatorId: string;
+    dataset: string;
+    label: string;
+  }>;
 }
+
+const PILLAR_ICONS: Record<string, React.ElementType> = {
+  gdp: TrendingUp,
+  inflation: Activity,
+  unemployment: Users,
+  debt: Landmark,
+  policy_rate: Percent,
+  housing: Building2,
+  energy: Flame,
+  food: Wheat,
+  credit_money: CircleDollarSign
+};
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedCountryCode, setSelectedCountryCode] = useState<string>('FR');
-  const [metrics, setMetrics] = useState<MetricCardData[]>([]);
+  const [activeConcept, setActiveConcept] = useState<EconomicConceptId | null>(null);
+  const [metrics, setMetrics] = useState<PillarMetric[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
@@ -46,137 +84,53 @@ export const DashboardPage: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Fetch Real GDP Growth (IMF)
-      const gdpResult = await queryService.executeQuery({
-        source: 'imf',
-        dataset: 'WEO',
-        indicator: 'real_gdp_growth',
-        countries: [selectedCountryCode],
-        startPeriod: '2023',
-        endPeriod: '2026',
-        frequency: 'A'
-      }, force);
+      // Resolve the 6 macro pillars for the selected country
+      const resolutions = SourceRouter.resolveCockpit(MACRO_HEXAGON_CONCEPTS, selectedCountryCode);
 
-      // 2. Fetch Inflation (IMF or Eurostat)
-      const inflationResult = await queryService.executeQuery({
-        source: 'imf',
-        dataset: 'WEO',
-        indicator: 'imf_inflation_rate',
-        countries: [selectedCountryCode],
-        startPeriod: '2023',
-        endPeriod: '2026',
-        frequency: 'A'
-      }, force);
+      // Execute queries in parallel using resolved optimal sources
+      const results = await Promise.allSettled(
+        resolutions.map(res =>
+          queryService.executeQuery(
+            {
+              source: res.source,
+              dataset: res.dataset,
+              indicator: res.indicatorId,
+              countries: [selectedCountryCode],
+              frequency: res.indicator.defaultFrequency
+            },
+            force
+          )
+        )
+      );
 
-      // 3. Fetch Public Debt (IMF)
-      const debtResult = await queryService.executeQuery({
-        source: 'imf',
-        dataset: 'WEO',
-        indicator: 'general_govt_debt',
-        countries: [selectedCountryCode],
-        startPeriod: '2023',
-        endPeriod: '2026',
-        frequency: 'A'
-      }, force);
+      const loadedMetrics: PillarMetric[] = resolutions.map((res, index) => {
+        const concept = ECONOMIC_CONCEPTS.find(c => c.id === res.conceptId)!;
+        const meta = SOURCE_METADATA[res.source];
+        const resOutcome = results[index];
 
-      // 4. Fetch Unemployment (IMF)
-      const unempResult = await queryService.executeQuery({
-        source: 'imf',
-        dataset: 'WEO',
-        indicator: 'unemployment_rate',
-        countries: [selectedCountryCode],
-        startPeriod: '2023',
-        endPeriod: '2026',
-        frequency: 'A'
-      }, force);
-
-      // 5. Fetch House Price Index (Eurostat)
-      let hpiResult = null;
-      try {
-        hpiResult = await queryService.executeQuery({
-          source: 'eurostat',
-          dataset: 'prc_hpi_q',
-          indicator: 'house_price_index',
-          countries: [selectedCountryCode],
-          startPeriod: '2023-Q1',
-          endPeriod: '2025-Q4',
-          frequency: 'Q',
-          dimensions: { unit: 'I15_Q', purchase: 'TOTAL' }
-        }, force);
-      } catch {
-        // HPI might not be available for non-EU countries
-      }
-
-      // Helper to extract latest observation
-      const getLatest = (obs: EconomicObservation[]) => {
-        if (!obs || obs.length === 0) return null;
-        const valid = obs.filter(o => o.value !== null);
-        return valid.length > 0 ? valid[valid.length - 1] : null;
-      };
-
-      const latestGdp = getLatest(gdpResult.observations);
-      const latestInflation = getLatest(inflationResult.observations);
-      const latestDebt = getLatest(debtResult.observations);
-      const latestUnemp = getLatest(unempResult.observations);
-      const latestHpi = hpiResult ? getLatest(hpiResult.observations) : null;
-
-      const loadedMetrics: MetricCardData[] = [
-        {
-          id: 'gdp',
-          title: 'Real GDP Growth',
-          source: 'IMF WEO',
-          value: latestGdp ? latestGdp.value : null,
-          unit: '%',
-          period: latestGdp ? latestGdp.period : '2025',
-          indicatorId: 'real_gdp_growth',
-          dataset: 'WEO',
-          icon: TrendingUp
-        },
-        {
-          id: 'inflation',
-          title: 'Consumer Price Inflation',
-          source: 'IMF WEO',
-          value: latestInflation ? latestInflation.value : null,
-          unit: '%',
-          period: latestInflation ? latestInflation.period : '2025',
-          indicatorId: 'imf_inflation_rate',
-          dataset: 'WEO',
-          icon: Activity
-        },
-        {
-          id: 'debt',
-          title: 'Public Debt (% of GDP)',
-          source: 'IMF WEO',
-          value: latestDebt ? latestDebt.value : null,
-          unit: '% of GDP',
-          period: latestDebt ? latestDebt.period : '2025',
-          indicatorId: 'general_govt_debt',
-          dataset: 'WEO',
-          icon: DollarSign
-        },
-        {
-          id: 'unemployment',
-          title: 'Unemployment Rate',
-          source: 'IMF WEO',
-          value: latestUnemp ? latestUnemp.value : null,
-          unit: '%',
-          period: latestUnemp ? latestUnemp.period : '2025',
-          indicatorId: 'unemployment_rate',
-          dataset: 'WEO',
-          icon: Users
-        },
-        {
-          id: 'housing',
-          title: 'House Price Index (HPI)',
-          source: 'Eurostat',
-          value: latestHpi ? latestHpi.value : null,
-          unit: 'Index 2015=100',
-          period: latestHpi ? latestHpi.period : '2024-Q4',
-          indicatorId: 'house_price_index',
-          dataset: 'prc_hpi_q',
-          icon: Building
+        let latestObs: EconomicObservation | null = null;
+        if (resOutcome.status === 'fulfilled') {
+          const valid = (resOutcome.value.observations || []).filter(o => o.value !== null);
+          if (valid.length > 0) {
+            latestObs = valid[valid.length - 1];
+          }
         }
-      ];
+
+        return {
+          conceptId: res.conceptId,
+          title: concept.labelFr,
+          source: meta?.name || res.source.toUpperCase(),
+          sourceBadge: meta?.badge || res.source.toUpperCase(),
+          routingReason: res.reasonFr,
+          value: latestObs ? latestObs.value : null,
+          unit: res.indicator.unit,
+          period: latestObs ? latestObs.period : '2025/2026',
+          indicatorId: res.indicatorId,
+          dataset: res.dataset,
+          icon: PILLAR_ICONS[res.conceptId] || TrendingUp,
+          alternatives: res.alternatives
+        };
+      });
 
       setMetrics(loadedMetrics);
       setLastUpdated(new Date().toLocaleTimeString());
@@ -191,11 +145,29 @@ export const DashboardPage: React.FC = () => {
     loadDashboardData();
   }, [selectedCountryCode]);
 
-  const handleInspect = (m: MetricCardData) => {
-    navigate(`/explorer?source=${m.source.toLowerCase().includes('eurostat') ? 'eurostat' : 'imf'}&indicator=${m.indicatorId}&countries=${selectedCountryCode}`);
+  const handleInspect = (m: PillarMetric) => {
+    navigate(
+      `/explorer?source=${m.sourceBadge.toLowerCase().includes('eurostat') ? 'eurostat' : m.source.toLowerCase()}&indicator=${m.indicatorId}&countries=${selectedCountryCode}`
+    );
   };
 
-  const majorCountries = COUNTRIES.filter(c => ['FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'EU', 'US', 'GB'].includes(c.code));
+  const handleSelectPillarFromBar = (
+    conceptId: EconomicConceptId,
+    resolved: ReturnType<typeof SourceRouter.resolveBestSource>
+  ) => {
+    setActiveConcept(conceptId);
+    navigate(
+      `/explorer?source=${resolved.source}&indicator=${resolved.indicatorId}&dataset=${resolved.dataset}&countries=${selectedCountryCode}`
+    );
+  };
+
+  const handleSelectCockpitHexagon = () => {
+    navigate(`/explorer?countries=${selectedCountryCode}&source=auto`);
+  };
+
+  const majorCountries = COUNTRIES.filter(c =>
+    ['FR', 'DE', 'IT', 'ES', 'NL', 'BE', 'EU', 'US', 'GB'].includes(c.code)
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
@@ -205,14 +177,14 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <span>Executive Macro Intelligence</span>
             <span aria-hidden="true">·</span>
-            <span>Real-time official stats</span>
+            <span>Routage Multi-Sources Intelligent</span>
             <span aria-hidden="true">·</span>
             <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5" /> Verified APIs
+              <ShieldCheck className="w-3.5 h-3.5" /> 12 Sources Officielles Connectées
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
-            Global Economic Monitor
+            Cockpit Macroéconomique Universel
           </h1>
         </div>
 
@@ -220,10 +192,13 @@ export const DashboardPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-x-auto max-w-full">
             {majorCountries.map(c => (
-              <Tooltip key={c.code} content={`Afficher les indicateurs : ${c.name} (${c.region})`} position="bottom">
+              <Tooltip key={c.code} content={`Afficher les 6 piliers pour : ${c.nameFr || c.name} (${c.region})`} position="bottom">
                 <button
-                  onClick={() => setSelectedCountryCode(c.code)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
+                  onClick={() => {
+                    setSelectedCountryCode(c.code);
+                    setActiveConcept(null);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap cursor-pointer ${
                     selectedCountryCode === c.code
                       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -236,11 +211,11 @@ export const DashboardPage: React.FC = () => {
             ))}
           </div>
 
-          <Tooltip content="Rafraîchir les données officielles en direct" position="bottom">
+          <Tooltip content="Rafraîchir les 6 indicateurs officiels en direct" position="bottom">
             <button
               onClick={() => loadDashboardData(true)}
-              className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              aria-label="Rafraîchir les chiffres"
+              className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              aria-label="Rafraîchir les données"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-blue-600' : ''}`} />
             </button>
@@ -248,94 +223,161 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Intelligent Concept Router Quick Bar */}
+      <MacroCockpitBar
+        currentCountry={selectedCountryCode}
+        activeConcept={activeConcept}
+        onSelectConcept={handleSelectPillarFromBar}
+        onSelectCockpitHexagon={handleSelectCockpitHexagon}
+      />
+
       {/* Country Hero Header Card */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 text-white shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-400 via-transparent to-transparent pointer-events-none" />
+      <div className="p-6 rounded-2xl bg-linear-to-r from-slate-950 via-slate-900 to-blue-950 text-white shadow-lg relative overflow-hidden border border-slate-800">
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-15 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-400 via-transparent to-transparent pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-blue-300 text-xs font-medium">
               <span className="text-xl">{currentCountry.flag}</span>
-              <span>{currentCountry.region}</span>
+              <span>{currentCountry.nameFr || currentCountry.name}</span>
               <span>·</span>
-              <span>{currentCountry.isEU ? 'European Union Member' : 'Global Economy'}</span>
+              <span>{currentCountry.isEU ? 'Zone Euro / Union Européenne' : 'Économie Internationale'}</span>
+              <span>·</span>
+              <span className="font-mono text-blue-400">Code: {currentCountry.code}</span>
             </div>
             <h2 className="text-2xl font-bold tracking-tight mt-1">
-              {currentCountry.name}
+              Tableau de Bord des 6 Piliers Macroéconomiques
             </h2>
-            <p className="text-xs text-slate-300 max-w-xl mt-1 leading-relaxed">
-              Consolidated macroeconomic indicator cards sourced directly from Eurostat Dissemination and the International Monetary Fund WEO series.
+            <p className="text-xs text-slate-300 max-w-2xl mt-1 leading-relaxed">
+              Consolidation intelligente temps réel : <strong>PIB + Inflation + Chômage + Dette + Taux directeur + Immobilier</strong>.
+              Chaque pilier est automatiquement extrait auprès de l'institution officielle souveraine la plus qualifiée (INSEE, BCE, Eurostat, FRED, BLS, FMI, Banque Mondiale).
             </p>
           </div>
 
-          <button
-            onClick={() => navigate(`/explorer?source=all&countries=${selectedCountryCode}`)}
-            className="self-start md:self-center flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition whitespace-nowrap"
-          >
-            <span>Open in Explorer</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 self-start md:self-center">
+            <button
+              onClick={() => navigate('/anomalies')}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md active:scale-95 transition whitespace-nowrap cursor-pointer"
+            >
+              <Bell className="w-3.5 h-3.5" />
+              <span>Anomalies 🔔</span>
+            </button>
+            <button
+              onClick={() => navigate(`/radar?country=${selectedCountryCode}`)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-md active:scale-95 transition whitespace-nowrap cursor-pointer"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>Economic Radar 🌍</span>
+            </button>
+            <button
+              onClick={() => navigate(`/scorecard?country=${selectedCountryCode}`)}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition whitespace-nowrap cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Fiche Pays</span>
+            </button>
+            <button
+              onClick={handleSelectCockpitHexagon}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md active:scale-95 transition whitespace-nowrap cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Explorer les 6 Piliers</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
       {error != null && <ErrorAlert error={error} onRetry={() => loadDashboardData(true)} />}
 
-      {/* 5 Indicator Stat Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        {loading
-          ? Array.from({ length: 5 }).map((_, i) => <StatCardSkeleton key={i} />)
-          : metrics.map(m => {
-              const Icon = m.icon;
-              const isPositive = m.value !== null && m.value > 0;
-              const isNegative = m.value !== null && m.value < 0;
+      {/* 6 Piliers Macro Cards Grid */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-blue-600" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+              Les 6 Piliers de l'Économie pour {currentCountry.nameFr || currentCountry.name}
+            </h3>
+          </div>
+          {lastUpdated && (
+            <span className="text-xs text-slate-400 font-mono">
+              Mis à jour : {lastUpdated}
+            </span>
+          )}
+        </div>
 
-              return (
-                <Tooltip
-                  key={m.id}
-                  content={`Cliquer pour analyser ${m.title} (${m.source}) dans l'Explorateur interactif`}
-                  className="w-full"
-                >
-                  <div
-                    onClick={() => handleInspect(m)}
-                    className="group w-full p-5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between"
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => <StatCardSkeleton key={i} />)
+            : metrics.map(m => {
+                const Icon = m.icon;
+                const isPositive = m.value !== null && m.value > 0;
+                const isNegative = m.value !== null && m.value < 0;
+
+                return (
+                  <Tooltip
+                    key={m.conceptId}
+                    content={`${m.routingReason} Cliquez pour ouvrir l'analyse détaillée.`}
+                    className="w-full"
                   >
-                    <div>
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                        <span className="font-medium text-slate-400 dark:text-slate-500 text-[11px] uppercase tracking-wider">
-                          {m.source}
-                        </span>
-                        <Icon className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                    <div
+                      onClick={() => handleInspect(m)}
+                      className="group w-full p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Source Badge with Flag */}
+                        <div className="flex items-center justify-between gap-1 text-xs">
+                          <span className="font-bold text-[11px] px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60 truncate">
+                            {m.sourceBadge}
+                          </span>
+                          <Icon className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
+                        </div>
+
+                        {/* Title */}
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-2 line-clamp-1">
+                          {m.title}
+                        </h4>
+
+                        {/* Value & Unit */}
+                        <div className="mt-2.5 flex items-baseline gap-1 font-mono tabular-nums">
+                          <span
+                            className={`text-xl font-extrabold tracking-tight ${
+                              isNegative && (m.conceptId === 'gdp' || m.conceptId === 'housing')
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : isPositive && m.conceptId === 'gdp'
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-slate-900 dark:text-white'
+                            }`}
+                          >
+                            {m.value !== null
+                              ? m.value > 0 && m.unit === '%'
+                                ? `+${m.value}`
+                                : m.value
+                              : '—'}
+                          </span>
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                            {m.unit}
+                          </span>
+                        </div>
                       </div>
 
-                      <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 mt-2 line-clamp-1">
-                        {m.title}
-                      </h4>
-
-                      <div className="mt-3 flex items-baseline gap-1 font-mono tabular-nums">
-                        <span className={`text-2xl font-extrabold tracking-tight ${
-                          isNegative && m.id === 'gdp'
-                            ? 'text-rose-600 dark:text-rose-400'
-                            : isPositive && m.id === 'gdp'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-slate-900 dark:text-white'
-                        }`}>
-                          {m.value !== null ? (m.value > 0 && m.unit === '%' ? `+${m.value}` : m.value) : '—'}
-                        </span>
-                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                          {m.unit}
-                        </span>
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center justify-between font-mono">
+                          <span>{m.period}</span>
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center">
+                            Détails →
+                          </span>
+                        </div>
+                        {m.alternatives.length > 0 && (
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 truncate">
+                            Alt: {m.alternatives.map(a => a.sourceName).join(', ')}
+                          </span>
+                        )}
                       </div>
                     </div>
-
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                      <span className="font-mono">Period: {m.period}</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-medium group-hover:translate-x-0.5 transition-transform flex items-center">
-                        Analyze →
-                      </span>
-                    </div>
-                  </div>
-                </Tooltip>
-              );
-            })}
+                  </Tooltip>
+                );
+              })}
+        </div>
       </div>
 
       {/* Quick Launchpad to Core Functions */}
@@ -346,13 +388,13 @@ export const DashboardPage: React.FC = () => {
         >
           <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 text-xs font-semibold">
             <Sparkles className="w-4 h-4" />
-            <span>Interactive Explorer</span>
+            <span>Moteur de Requête Unifié</span>
           </div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1.5">
-            Query Multi-Source Datasets
+            Explorateur Multi-Sources
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-            Customize indicators, filter country matrices, select time sliders, and view cross-cutting charts.
+            Consultez les 12 sources officielles, appliquez des filtres temporels et comparez les séries chronologiques en quelques clics.
           </p>
         </div>
 
@@ -362,13 +404,13 @@ export const DashboardPage: React.FC = () => {
         >
           <div className="flex items-center gap-2 text-amber-500 text-xs font-semibold">
             <Activity className="w-4 h-4" />
-            <span>Comparative Matrix</span>
+            <span>Comparateur Multi-Pays</span>
           </div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1.5">
-            Multi-Country Benchmarks
+            Matrices & Benchmarks Internationaux
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-            Compare France, Germany, Italy, Spain and others side-by-side with unit compatibility protection.
+            Comparez la France, l'Allemagne, les États-Unis et l'UE côte à côte avec protection contre les mélanges d'unités incompatibles.
           </p>
         </div>
 
@@ -377,14 +419,14 @@ export const DashboardPage: React.FC = () => {
           className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-400 dark:hover:border-slate-600 transition cursor-pointer"
         >
           <div className="flex items-center gap-2 text-emerald-500 text-xs font-semibold">
-            <Building className="w-4 h-4" />
-            <span>Catalog & Metadata</span>
+            <Building2 className="w-4 h-4" />
+            <span>Catalogue des 12 Sources</span>
           </div>
           <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1.5">
-            SDMX 3.0 & Codelists
+            Métadonnées & Spécifications SDMX
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-            Inspect raw dimensions, code lists, data structure definitions, and official release notes.
+            Eurostat, FMI, Banque Mondiale, FRED, INSEE, BCE, BLS, OCDE, ONU, BRI, EIA et FAO : inspectez les flux et licences ouvertes.
           </p>
         </div>
       </div>

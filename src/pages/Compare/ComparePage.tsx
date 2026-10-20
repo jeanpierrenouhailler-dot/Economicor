@@ -15,6 +15,7 @@ import { COUNTRIES, Country } from '../../models/Country';
 import { EconomicObservation } from '../../models/Observation';
 import { NormalizationService } from '../../services/NormalizationService';
 import { LineChart } from '../../components/charts/LineChart';
+import { TimeSeriesAnalysisCard } from '../../components/charts/TimeSeriesAnalysisCard';
 import { ObservationTable } from '../../components/tables/ObservationTable';
 import { SkeletonLoader } from '../../components/common/SkeletonLoader';
 import { ErrorAlert } from '../../components/common/ErrorAlert';
@@ -184,7 +185,7 @@ export const ComparePage: React.FC = () => {
             >
               {UNIFIED_INDICATORS.map(ind => (
                 <option key={ind.id} value={ind.id}>
-                  {ind.label} ({ind.source.toUpperCase()}) — [{ind.unit}]
+                  {ind.labelFr || ind.label} ({ind.source.toUpperCase()}) — [{ind.unit}]
                 </option>
               ))}
             </select>
@@ -203,7 +204,7 @@ export const ComparePage: React.FC = () => {
               >
                 {UNIFIED_INDICATORS.map(ind => (
                   <option key={ind.id} value={ind.id}>
-                    {ind.label} ({ind.source.toUpperCase()}) — [{ind.unit}]
+                    {ind.labelFr || ind.label} ({ind.source.toUpperCase()}) — [{ind.unit}]
                   </option>
                 ))}
               </select>
@@ -241,6 +242,9 @@ export const ComparePage: React.FC = () => {
               </div>
             </div>
             <LineChart observations={observationsA} unit={indicatorA.unit} height={360} />
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <TimeSeriesAnalysisCard observations={observationsA} />
+            </div>
           </div>
 
           {/* Secondary Indicator Chart if in two-indicator mode */}

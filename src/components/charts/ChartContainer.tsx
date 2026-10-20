@@ -13,6 +13,9 @@ import { BarChart } from './BarChart';
 import { ChoroplethMap } from '../maps/ChoroplethMap';
 import { ObservationTable } from '../tables/ObservationTable';
 import { ProvenanceBadge } from '../common/ProvenanceBadge';
+import { TimeSeriesAnalysisCard } from './TimeSeriesAnalysisCard';
+import { AnomalyAlertBanner } from '../anomalies/AnomalyAlertBanner';
+import { AnomalyDetectionService } from '../../services/AnomalyDetectionService';
 
 export type ViewMode = 'line' | 'bar' | 'map' | 'table';
 
@@ -37,6 +40,12 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
 }) => {
   const [activeView, setActiveView] = useState<ViewMode>('line');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [selectedAnalysisCountry, setSelectedAnalysisCountry] = useState<string | undefined>(undefined);
+
+  // Automatically detect statistical anomalies in observations
+  const detectedAnomalies = React.useMemo(() => {
+    return AnomalyDetectionService.detectAnomalies(observations);
+  }, [observations]);
 
   const handleShareLink = async () => {
     try {
@@ -97,7 +106,12 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
       </div>
 
       {/* Main Visual Display */}
-      <div className="p-4 sm:p-6">
+      <div className="p-4 sm:p-6 space-y-4">
+        {/* Automatic Anomaly Alert Banner if detected */}
+        {detectedAnomalies.length > 0 && (
+          <AnomalyAlertBanner anomalies={detectedAnomalies} />
+        )}
+
         {activeView === 'line' && (
           <LineChart observations={observations} unit={unit} height={380} />
         )}
@@ -117,6 +131,17 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
             unit={unit}
             sourceName={provenance.source}
           />
+        )}
+
+        {/* Deep Time-Series Analysis Section */}
+        {observations.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <TimeSeriesAnalysisCard
+              observations={observations}
+              selectedCountry={selectedAnalysisCountry}
+              onSelectCountry={setSelectedAnalysisCountry}
+            />
+          </div>
         )}
       </div>
 
